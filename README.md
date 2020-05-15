@@ -35,7 +35,8 @@ oc create -f postgres/ephemeral
 #change your postgress pod name TODO: determine nam
 
 ```
-oc exec -it quay-enterprise-quay-postgresql-59557c97c-zjg4s  -n quay-enterprise -- /bin/bash -c 'echo "CREATE EXTENSION IF NOT EXISTS pg_trgm" | /opt/rh/rh-postgresql10/root/usr/bin/psql -d quay'
+postgres_pod=$(oc get pods -n quay-enterprise  -lquay-enterprise-component=quay-database | grep quay-enterprise-quay-postgresql | awk '{ print $1}')
+oc exec -it $postgres_pod  -n quay-enterprise -- /bin/bash -c 'echo "CREATE EXTENSION IF NOT EXISTS pg_trgm" | /opt/rh/rh-postgresql10/root/usr/bin/psql -d quay'
 ```
 
 Create a serviceaccount for the database
@@ -81,11 +82,10 @@ oc create secret generic  quay-enterprise-config-secret --from-file="config.yaml
 
 also need to manually add superuser to the  postgres table..TODO
 ```
-#TODO - log into 
+postgres_pod=$(oc get pods -n quay-enterprise  -lquay-enterprise-component=quay-database | grep quay-enterprise-quay-postgresql | awk '{ print $1}')
 INSERT_SQL='INSERT INTO "user" ("id", "uuid", "username", "email", "verified", "organization", "robot", "invoice_email", "invalid_login_attempts", "last_invalid_login", "removed_tag_expiration_s", "enabled" , "creation_date") VALUES (1, 'f85a601e-90c2-472e-8f11-c5c9d2ffa7bc', 'quay', 'changeme@example.com', false, false, false, false, 0, current_timestamp, 1209600, true,current_timestamp) ;'
 
-oc exec -it quay-enterprise-quay-postgresql-59557c97c-zjg4s  -n quay-enterprise -- /bin/bash -c 'echo $INSERT_SQL | /opt/rh/rh-postgresql10/root/usr/bin/psql -d quay'
-```
+oc exec -it $postgres_pod -n quay-enterprise  -- /bin/bash -c 'echo "$INSERT_SQL" | psql -d quay'```
 
 Start Quay
  ```
