@@ -81,8 +81,10 @@ oc create secret generic  quay-enterprise-config-secret --from-file="config.yaml
 
 also need to manually add superuser to the  postgres table..TODO
 ```
-#TODO
-INSERT INTO "user" ("uuid", "username", "email", "verified", "organization", "robot", "invoice_email", "invalid_login_attempts", "last_invalid_login", "removed_tag_expiration_s", "enabled", "maximum_queued_builds_count", "creation_date") VALUES ('f85a601e-90c2-472e-8f11-c5c9d2ffa7bc', "quay", "changeme@example.com", false, false, false, false, %s, %s, %s, %s, %s, %s) RETURNING "user"."id"', [u'f85a601e-90c2-472e-8f11-c5c9d2ffa7bc', u'quay', u'changeme@example.com', False, False, False, False, 0, datetime.datetime(2020, 5, 15, 11, 25, 37, 548249), 1209600, True, None, datetime.datetime(2020, 5, 15, 11, 25, 37, 548245)])
+#TODO - log into 
+INSERT_SQL='INSERT INTO "user" ("id", "uuid", "username", "email", "verified", "organization", "robot", "invoice_email", "invalid_login_attempts", "last_invalid_login", "removed_tag_expiration_s", "enabled" , "creation_date") VALUES (1, 'f85a601e-90c2-472e-8f11-c5c9d2ffa7bc', 'quay', 'changeme@example.com', false, false, false, false, 0, current_timestamp, 1209600, true,current_timestamp) ;'
+
+oc exec -it quay-enterprise-quay-postgresql-59557c97c-zjg4s  -n quay-enterprise -- /bin/bash -c 'echo $INSERT_SQL | /opt/rh/rh-postgresql10/root/usr/bin/psql -d quay'
 ```
 
 Start Quay
@@ -141,5 +143,4 @@ SELECT table_name, table_schema FROM information_schema.tables;
 
 select id, uuid, username, email, verified, organization, robot, invoice_email, invalid_login_attempts, last_invalid_login, removed_tag_expiration_s, enabled from public.user;
 
-INSERT INTO "user" ("id", "uuid", "username", "email", "verified", "organization", "robot", "invoice_email", "invalid_login_attempts", "last_invalid_login", "removed_tag_expiration_s", "enabled" , "creation_date") VALUES (1, 'f85a601e-90c2-472e-8f11-c5c9d2ffa7bc', "quay", "changeme@example.com", false, false, false, false, 0, current_timestamp, true,current_timestamp) ;
 ```
