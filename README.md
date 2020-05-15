@@ -1,6 +1,11 @@
 **NOTE: this only works for 4.3 for now**
 
+TODO: Organize in different folders
+
+Create Quay Project.
+```
 oc new-project quay-enterprise
+```
 
 Create the secret for the Red Hat Quay configuration and app
 ```
@@ -8,6 +13,7 @@ oc create -f quay-enterprise-config-secret.yaml
 ```
 
 create the pull secret using this link https://access.redhat.com/solutions/3533201
+
 
 Create the database. Note, you may need to change passwords in the files first
 
@@ -25,6 +31,7 @@ oc create -f postgres-service.yaml
 ```
 
 #execute this on your postgress
+
 #change your postgress pod name TODO: determine nam
 
 ```
@@ -84,4 +91,32 @@ oc create -f quay-enterprise-app-rc.yaml
 
 
 TODO: Determine how to set the superuser so that quay doesn't fail on startup
+     
       See what db updates the quay tool performs
+
+TODO: add Clair and test instructions
+
+Creat the Clair Database TODO: ephmeral also
+```
+oc create -f clair/postgres-clair-storage.yaml
+oc create -f clair/postgres-clair-deployment.yaml
+oc create -f clair/postgres-clair-service.yaml
+```
+
+instructions to opn the quay setup ui to enable scanning, need to make sure that config.yaml reflects this
+
+instructions to edit clair-config.yaml
+
+
+Create the clair config secret and service
+```
+oc create secret generic clair/clair-scanner-config-secret \
+   --from-file=config.yaml=/path/to/clair-config.yaml \
+   --from-file=security_scanner.pem=/path/to/security_scanner.pem
+oc create -f clair/clair-service.yaml
+oc create -f clair/clair-deployment.yaml
+```
+
+instructions to get the clair-service endpoint, enter security scanner endpoint ...make sure that config.yaml reflects this
+
+restart quay
