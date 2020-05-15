@@ -3,7 +3,7 @@
   metadata:
     labels:
       app: postgres-clair
-    name: postgres-clair
+    name: quay-enterprise-clair-postgresql
     namespace: quay-enterprise
   spec:
     ports:

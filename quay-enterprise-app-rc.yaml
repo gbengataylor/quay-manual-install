@@ -21,7 +21,7 @@ spec:
           secret:
             secretName: quay-enterprise-config-secret
       containers:
-      - name: quay-enterprise-quay
+      - name: quay-enterprise-app
         image: quay.io/redhat/quay:v3.3.0
         ports:
         - containerPort: 8443

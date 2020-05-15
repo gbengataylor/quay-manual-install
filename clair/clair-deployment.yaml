@@ -3,7 +3,7 @@
   metadata:
     labels:
       quay-enterprise-component: clair-scanner
-    name: clair-scanner
+    name: quay-enterprise-clair
     namespace: quay-enterprise
   spec:
     replicas: 1

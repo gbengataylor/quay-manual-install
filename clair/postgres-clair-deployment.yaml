@@ -1,9 +1,9 @@
- apiVersion: extensions/v1beta1
+  apiVersion: extensions/v1beta1
   kind: Deployment
   metadata:
     labels:
       app: postgres-clair
-    name: postgres-clair
+    name: quay-enterprise-clair-postgresql
     namespace: quay-enterprise
   spec:
     replicas: 1
@@ -22,10 +22,10 @@
           - name: POSTGRESQL_DATABASE
             value: clair 
           - name: POSTGRESQL_PASSWORD
-            value: test123 
+            value: clair 
           image: registry.access.redhat.com/rhscl/postgresql-10-rhel7:1-35
           imagePullPolicy: IfNotPresent
-          name: postgres-clair
+          name: quay-enterprise-clair-postgresql
           ports:
           - containerPort: 5432
             protocol: TCP

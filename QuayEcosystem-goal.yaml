@@ -1,0 +1,10 @@
+#goal
+apiVersion: redhatcop.redhat.io/v1alpha1
+kind: QuayEcosystem
+metadata:
+  name: quay-enterprise
+spec:
+  quay:
+    imagePullSecretName: redhat-quay-pull-secret
+  clair:
+    enabled: true

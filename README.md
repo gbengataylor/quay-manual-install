@@ -19,15 +19,15 @@ Create the database. Note, you may need to change passwords in the files first
 
 ```
 #this storage class uses ebs as default. update accordingly
+
+oc create -f postgres/
+
 #persistent storage
 oc create -f quay-storageclass.yaml
-oc create -f db-pvc.yaml
-oc create -f postgres-deployment.yaml
-oc create -f postgres-service.yaml
+oc create -f postgres/persistent
 
 #run this if testing with ephermal storage
-oc create -f postgres-deployment-ephemeral.yaml
-oc create -f postgres-service.yaml
+oc create -f postgres/ephemeral
 ```
 
 #execute this on your postgress
@@ -47,8 +47,7 @@ oc adm policy add-scc-to-user anyuid -z system:serviceaccount:quay-enterprise:qu
 
 Create the role and binding
 ```
-oc create -f quay-servicetoken-role-k8s1-6.yaml
-oc create -f quay-servicetoken-role-binding-k8s1-6.yaml
+oc create -f service-token/
 ```
 
 add privilege
@@ -59,8 +58,8 @@ oc adm policy add-scc-to-user anyuid \
 
 create redis
 ```
- oc create -f quay-enterprise-redis.yaml
- ```
+ oc create -f redis/
+```
 
 
 Set Quay route and service
@@ -70,9 +69,7 @@ oc create -f quay-enterprise-app-route.yaml
 ```
  skip instructions to setup quay tool
  ```
-#oc create -f quay-enterprise-config.yaml
-#oc create -f quay-enterprise-config-service-clusterip.yaml
-#oc create -f quay-enterprise-config-route.yaml
+#oc create -f config-tool/
 ```
 
  instead use the config.yaml in the repo. modify accordingly. may need to update route and storage option
@@ -83,6 +80,10 @@ oc create secret generic  quay-enterprise-config-secret --from-file="config.yaml
 ```
 
 also need to manually add superuser to the  postgres table..TODO
+```
+#TODO
+INSERT INTO "user" ("uuid", "username", "email", "verified", "organization", "robot", "invoice_email", "invalid_login_attempts", "last_invalid_login", "removed_tag_expiration_s", "enabled", "maximum_queued_builds_count", "creation_date") VALUES ('f85a601e-90c2-472e-8f11-c5c9d2ffa7bc', "quay", "changeme@example.com", false, false, false, false, %s, %s, %s, %s, %s, %s) RETURNING "user"."id"', [u'f85a601e-90c2-472e-8f11-c5c9d2ffa7bc', u'quay', u'changeme@example.com', False, False, False, False, 0, datetime.datetime(2020, 5, 15, 11, 25, 37, 548249), 1209600, True, None, datetime.datetime(2020, 5, 15, 11, 25, 37, 548245)])
+```
 
 Start Quay
  ```
@@ -109,7 +110,9 @@ instructions to edit clair-config.yaml
 
 
 Create the clair config secret and service
+
 ```
+# likely need to change settings..might need to user clair-config-2.yaml
 oc create secret generic clair/clair-scanner-config-secret \
    --from-file=config.yaml=/path/to/clair-config.yaml \
    --from-file=security_scanner.pem=/path/to/security_scanner.pem
@@ -120,3 +123,23 @@ oc create -f clair/clair-deployment.yaml
 instructions to get the clair-service endpoint, enter security scanner endpoint ...make sure that config.yaml reflects this
 
 restart quay
+
+
+#random stuff
+
+```
+#in quay-enterprise-quay-postgresql
+
+psql -d quay -U quay
+
+#in psql prompt
+SELECT table_name FROM information_schema.tables WHERE table_schema='public';
+select table_name, column_name, table_schema, data_type, is_nullable from information_schema.columns where table_name='user';
+
+
+SELECT table_name, table_schema FROM information_schema.tables; 
+
+select id, uuid, username, email, verified, organization, robot, invoice_email, invalid_login_attempts, last_invalid_login, removed_tag_expiration_s, enabled from public.user;
+
+INSERT INTO "user" ("id", "uuid", "username", "email", "verified", "organization", "robot", "invoice_email", "invalid_login_attempts", "last_invalid_login", "removed_tag_expiration_s", "enabled" , "creation_date") VALUES (1, 'f85a601e-90c2-472e-8f11-c5c9d2ffa7bc', "quay", "changeme@example.com", false, false, false, false, 0, current_timestamp, true,current_timestamp) ;
+```

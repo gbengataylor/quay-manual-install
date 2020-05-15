@@ -1,3 +1,4 @@
+
   apiVersion: extensions/v1beta1
   kind: Deployment
   metadata:
@@ -17,7 +18,7 @@
           quay-enterprise-component: config-app
       spec:
         containers:
-        - name: quay-enterprise-quay-config
+        - name: quay-enterprise-config
           image: quay.io/redhat/quay:v3.3.0
           ports:
           - containerPort: 8443
