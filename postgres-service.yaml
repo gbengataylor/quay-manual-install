@@ -1,12 +1,12 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: postgres
+  name: quay-enterprise-quay-postgresql
   labels:
-    app: postgres
+    app: quay-enterprise-quay-postgresql
 spec:
   type: NodePort
   ports:
    - port: 5432
   selector:
-   app: postgres
+   app: quay-enterprise-quay-postgresql

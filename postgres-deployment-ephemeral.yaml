@@ -23,12 +23,3 @@
               value: "quay"
             - name: POSTGRESQL_PASSWORD
               value: "quay" 
-            volumeMounts:
-              - mountPath: /var/lib/pgsql/data
-                name: postgredb
-            serviceAccount: postgres
-            serviceAccountName: postgres
-        volumes:
-          - name: postgredb
-            persistentVolumeClaim:
-              claimName: postgres-storage

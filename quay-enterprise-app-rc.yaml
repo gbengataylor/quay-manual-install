@@ -2,7 +2,7 @@ apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
   namespace: quay-enterprise
-  name: quay-enterprise-app
+  name: quay-enterprise-quay
   labels:
     quay-enterprise-component: app
 spec:
@@ -21,7 +21,7 @@ spec:
           secret:
             secretName: quay-enterprise-config-secret
       containers:
-      - name: quay-enterprise-app
+      - name: quay-enterprise-quay
         image: quay.io/redhat/quay:v3.3.0
         ports:
         - containerPort: 8443

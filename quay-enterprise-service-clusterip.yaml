@@ -2,7 +2,7 @@
   kind: Service
   metadata:
     namespace: quay-enterprise
-    name: quay-enterprise-clusterip
+    name: quay-enterprise-quay
   spec:
     type: ClusterIP
     ports:
