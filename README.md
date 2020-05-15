@@ -33,8 +33,7 @@ oc create -f postgres/ephemeral
 
 #execute this on your postgress
 
-#change your postgress pod name TODO: determine nam
-
+#change your postgress pod name AFTER the posgresql pod is running
 ```
 postgres_pod=$(oc get pods -n quay-enterprise  -lapp=quay-enterprise-quay-postgresql | grep quay-enterprise-quay-postgresql | awk '{ print $1}')
 oc exec -it $postgres_pod  -n quay-enterprise -- /bin/bash -c 'echo "CREATE EXTENSION IF NOT EXISTS pg_trgm" | /opt/rh/rh-postgresql10/root/usr/bin/psql -d quay'
@@ -72,13 +71,20 @@ oc create -f quay-enterprise-app-route.yaml
 #oc create -f config-tool/
 ```
 
-instead use the config.yaml in the repo. modify accordingly. may need to update route and storage option
-Also, supply your appropriate certs. 
+instead use the config.yaml in the repo. modify accordingly. may need to update route and storage option.
+Also, supply your appropriate certs. For testing you can use dummy certs but best to follow instructions here to generate the certs:
+https://access.redhat.com/documentation/en-us/red_hat_quay/3.3/html-single/manage_red_hat_quay/index#using-ssl-to-protect-quay
 ```
+# probably didn't need to create it the first time but leaving as-is
 oc delete secret quay-enterprise-config-secret
-oc create secret generic  quay-enterprise-config-secret --from-file="config.yaml=config.yaml" \
+oc create secret generic  quay-enterprise-config-secret --from-file="config.yaml=config-copied.yaml" \
+                                    --from-file=ssl.key=dummy-certs/ca/device.key \
+                                    --from-file=ssl.cert=dummy-certs/ca/device.crt
+# if you generate extra certs use this as an example. still use the appropriate certs
+#oc create secret generic  quay-enterprise-config-secret --from-file="config.yaml=config-copied.yaml" \
                                     --from-file=ssl.key=dummy-certs/ssl.key \
-                                    --from-file=ssl.cert=dummy-certs/ssl.cert
+                                    --from-file=ssl.cert=dummy-certs/ssl.cert \
+                                    --from-file=extra_ca_certs_quay.crt=dummy-certs/extra_ca_certs_quay.crt
 ```
 
 
@@ -93,7 +99,10 @@ Quay will start crashing, need to insert superuser. Need to do this AFTER Quay d
 ```
 postgres_pod=$(oc get pods -n quay-enterprise  -lapp=quay-enterprise-quay-postgresql | grep quay-enterprise-quay-postgresql | awk '{ print $1}')
 #note: currently uses hash for password..for demo, hardcoding for now
-INSERT_SQL='INSERT INTO "user" ("uuid", "username", "email", "verified", "organization", "robot", "invoice_email", "invalid_login_attempts", "last_invalid_login", "removed_tag_expiration_s", "enabled" , "creation_date", "password_hash") VALUES ('f85a601e-90c2-472e-8f11-c5c9d2ffa7bc', 'quay', 'changeme@example.com', false, false, false, false, 0, current_timestamp, 1209600, true,current_timestamp, 'a$12$aijsRWiXXYj5l83WezZ1juG2pR37DSgOvHtC9PpEjs1FXMtJ1O');'
+INSERT_SQL='INSERT INTO "user" ("uuid", "username", "email", "verified", "organization", "robot", "invoice_email", "invalid_login_attempts", "last_invalid_login", "removed_tag_expiration_s", "enabled" , "creation_date", "password_hash") VALUES ('c2e14e33-a155-4d38-9cc5-d44b00cbe360', 'quay', 'changeme@example.com', true, false, false, false, 0, current_timestamp, 1209600, true,current_timestamp, '$2a$12$u0HMSBz3slLA8jyf4Gi/6.GDbZAM2u8OZDfC6i/oCujqFHVS/CP3W');'
+
+#c2e14e33-a155-4d38-9cc5-d44b00cbe360
+#$2a$12$u0HMSBz3slLA8jyf4Gi/6.GDbZAM2u8OZDfC6i/oCujqFHVS/CP3W
 
 oc exec -it $postgres_pod -n quay-enterprise  -- /bin/bash -c 'echo $INSERT_SQL | psql -d quay'
 
@@ -104,9 +113,11 @@ oc exec -it $postgres_pod -n quay-enterprise  -- /bin/bash -c 'echo $SELECT_SQL 
 #you might need to log into pod and execute and view command
 oc rsh $postgres_pod
 
+# if you changed your database name and/or user, change appropriately
 sh-4.2$ psql -d quay -U quay
 
-## execute INSERT STATEMENT in pssql shell
+## execute $INSERT_SQL in pssql shell
+
 
 quay==> \q
 sh-4.2$ exit
