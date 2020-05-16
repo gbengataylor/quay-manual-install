@@ -1,4 +1,4 @@
-**NOTE: this only works for 4.3 for now**
+**NOTE: this only works for 4.3 for now. The API for Deployments changed in 4.4 (k8s 1.17) so deployments will fail **
 
 TODO: Organize in different folders
 
@@ -19,7 +19,7 @@ create the pull secret using this link https://access.redhat.com/solutions/35332
 Create the database. Note, you may need to change passwords in the files first
 
 ```
-#this storage class uses ebs as default. update accordingly
+#this storage class uses ebs as default. update accordingly to your cloud provider. Also included is ephermeral storage for quick testing.
 
 oc create -f postgres/ 
 
@@ -71,17 +71,18 @@ oc create -f quay-enterprise-app-route.yaml
 #oc create -f config-tool/
 ```
 
-instead use the config.yaml in the repo. modify accordingly. may need to update route and storage option.
+instead use the config-copied-clair.yaml in the repo. modify accordingly. may need to update route and storage option.
 Also, supply your appropriate certs. For testing you can use dummy certs but best to follow instructions here to generate the certs:
 https://access.redhat.com/documentation/en-us/red_hat_quay/3.3/html-single/manage_red_hat_quay/index#using-ssl-to-protect-quay
+Finally this example uses localStorage, which isn't supported. In production env, update to use a supported storage backend for the registry
 ```
 # probably didn't need to create it the first time but leaving as-is
 oc delete secret quay-enterprise-config-secret
-oc create secret generic  quay-enterprise-config-secret --from-file="config.yaml=config-copied.yaml" \
+oc create secret generic  quay-enterprise-config-secret --from-file="config.yaml=config-copied-clair.yaml" \
                                     --from-file=ssl.key=dummy-certs/ca/device.key \
                                     --from-file=ssl.cert=dummy-certs/ca/device.crt
 # if you generate extra certs use this as an example. still use the appropriate certs
-#oc create secret generic  quay-enterprise-config-secret --from-file="config.yaml=config-copied.yaml" \
+#oc create secret generic  quay-enterprise-config-secret --from-file="config.yaml=config-copied-clair.yaml" \
                                     --from-file=ssl.key=dummy-certs/ssl.key \
                                     --from-file=ssl.cert=dummy-certs/ssl.cert \
                                     --from-file=extra_ca_certs_quay.crt=dummy-certs/extra_ca_certs_quay.crt
@@ -94,15 +95,11 @@ Start Quay
 oc create -f quay-enterprise-app-rc.yaml
 ```
 
-
-Quay will start crashing, need to insert superuser. Need to do this AFTER Quay deploys since it creates the Schema
+Quay will start crashing becuase we need to insert superuser. Need to do this AFTER initially Quay deploys since it creates the Schema for the Quay app in postgres
 ```
 postgres_pod=$(oc get pods -n quay-enterprise  -lapp=quay-enterprise-quay-postgresql | grep quay-enterprise-quay-postgresql | awk '{ print $1}')
 #note: currently uses hash for password..for demo, hardcoding for now
 INSERT_SQL='INSERT INTO "user" ("uuid", "username", "email", "verified", "organization", "robot", "invoice_email", "invalid_login_attempts", "last_invalid_login", "removed_tag_expiration_s", "enabled" , "creation_date", "password_hash") VALUES ('c2e14e33-a155-4d38-9cc5-d44b00cbe360', 'quay', 'changeme@example.com', true, false, false, false, 0, current_timestamp, 1209600, true,current_timestamp, '$2a$12$u0HMSBz3slLA8jyf4Gi/6.GDbZAM2u8OZDfC6i/oCujqFHVS/CP3W');'
-
-#c2e14e33-a155-4d38-9cc5-d44b00cbe360
-#$2a$12$u0HMSBz3slLA8jyf4Gi/6.GDbZAM2u8OZDfC6i/oCujqFHVS/CP3W
 
 oc exec -it $postgres_pod -n quay-enterprise  -- /bin/bash -c 'echo $INSERT_SQL | psql -d quay'
 
@@ -123,39 +120,42 @@ quay==> \q
 sh-4.2$ exit
 ```
 
-
+Give ```quay-enterprise-app``` a few seconds to boot up successfully. Once it does, you should be able to login as quay/password
 
 TODO: add Clair and test instructions
 
-Creat the Clair Database TODO: ephmeral also
-```
-oc create -f clair/postgres-clair-storage.yaml
-oc create -f clair/postgres-clair-deployment.yaml
-oc create -f clair/postgres-clair-service.yaml
-```
-
-instructions to opn the quay setup ui to enable scanning, need to make sure that config.yaml reflects this
-
-instructions to edit clair-config.yaml
-
-
-Create the clair config secret and service
+Create the Clair Database. You may need to change the database credentials if they were modified. Also, as with the quay database, you may need to modify for the appropriate storage type for the cloud provider. For testing, use the ephemeral option if you don't have a persistent storage on your cluster
 
 ```
-# likely need to change settings..might need to user clair-config-2.yaml
-oc create secret generic clair/clair-scanner-config-secret \
-   --from-file=config.yaml=/path/to/clair-config.yaml \
-   --from-file=security_scanner.pem=/path/to/security_scanner.pem
+# service 
+oc create -f clair/postgres
+
+#persisent
+oc create -f clair/postgres/persistent
+
+#ephemeral
+oc create -f clair/postgres/ephemeral
+```
+
+The config.yaml in this repo should already have the appropriate clair settings. You will need to update your clair-config.yaml with the appropriate quay route
+
+Create the clair config secret, service, and deployment
+```
+oc create secret generic clair-scanner-config-secret \
+   --from-file=config.yaml=clair/clair-config.yaml \
+   --from-file=security_scanner.pem=dummy-certs/security_scanner.pem \
+   --from-file=kid=dummy-certs/security_scanner.id
 oc create -f clair/clair-service.yaml
 oc create -f clair/clair-deployment.yaml
 ```
 
-instructions to get the clair-service endpoint, enter security scanner endpoint ...make sure that config.yaml reflects this
-
 restart quay
+```
+oc delete pod -lquay-enterprise-component=app
+```
+Wait till the quay app pod restarts, login and attempt to push a new image to a repo. If successful, the clair scan should get Queued and at some point the scan should happen
 
-
-#random stuff
+# APPENDIX
 
 ```
 #in quay-enterprise-quay-postgresql
