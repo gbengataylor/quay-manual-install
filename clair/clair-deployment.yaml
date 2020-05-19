@@ -30,20 +30,33 @@
           volumeMounts:
           - mountPath: /clair/config
             name: configvolume
-          - mountPath: /etc/pki/ca-trust/source/anchors/ca.crt
+          - mountPath: /etc/pki/ca-trust/source/anchors/quay.crt
             name: quay-ssl
-            subPath: ca.crt
+            subPath: quay.crt
         imagePullSecrets:
         - name: redhat-quay-pull-secret
         restartPolicy: Always
         volumes:
         - name: configvolume
-          secret:
-            secretName: clair-scanner-config-secret
+          projected:
+            sources:        
+              - secret:
+                 items:
+                   - key: security_scanner.pem
+                     path: security_scanner.pem
+                   - key: config.yaml
+                     path: config.yaml
+                   - key: tls.key
+                     path: clair.key
+                   - key: tls.crt
+                     path: clair.crt      
+                 name: clair-scanner-config-secret        
         - name: quay-ssl
-          secret:
+          projected:
+            sources:
+              - secret:   
+                  items:
+                    - key: ssl.cert
+                      path: quay.crt
+                  name: quay-enterprise-config-secret
             defaultMode: 420
-            items:
-            - key: ssl.cert
-              path: ca.crt
-            secretName: quay-enterprise-config-secret

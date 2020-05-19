@@ -34,8 +34,8 @@ jwtproxy:
         type: preshared
         options:
           # this is the value in dummy-certs/security_scanner.id
-          key_id: 6c553568eb0cb2e040e511292c7fb273825c0fe7ef74c35e9368e6bf676f2c1f
-          #key_id: e7c002b3d9a76337a848b389003bcd537432b7ae0d088efa410aed019360b2e7
+          #key_id: 6c553568eb0cb2e040e511292c7fb273825c0fe7ef74c35e9368e6bf676f2c1f
+          key_id: e7c002b3d9a76337a848b389003bcd537432b7ae0d088efa410aed019360b2e7
           private_key_path: /clair/config/security_scanner.pem
   verifier_proxies:
   - enabled: true

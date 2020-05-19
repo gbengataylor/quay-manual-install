@@ -6,6 +6,7 @@ BUILDLOGS_REDIS:
 DATABASE_SECRET_KEY: '9871921866539891260509257938256916678190741194910149339325094129094227992363'
 DB_URI: postgresql://quay:quay@quay-enterprise-quay-postgresql/quay
 DEFAULT_TAG_EXPIRATION: 2w
+# you may also need to change the storage config
 DISTRIBUTED_STORAGE_CONFIG:
   default:
   - LocalStorage

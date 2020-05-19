@@ -1,7 +1,5 @@
 **NOTE: this only works for 4.3 for now. The API for Deployments changed in 4.4 (k8s 1.17) so deployments will fail **
 
-TODO: Organize in different folders
-
 Create Quay Project.
 ```
 oc new-project quay-enterprise
@@ -78,7 +76,7 @@ Finally this example uses localStorage, which isn't supported. In production env
 ```
 # probably didn't need to create it the first time but leaving as-is
 oc delete secret quay-enterprise-config-secret
-oc create secret generic  quay-enterprise-config-secret --from-file="config.yaml=config-copied-clair.yaml" \
+oc create secret generic  quay-enterprise-config-secret --from-file="config.yaml=config-copied.yaml" \
                                     --from-file=ssl.key=dummy-certs/ca/device.key \
                                     --from-file=ssl.cert=dummy-certs/ca/device.crt
 # if you generate extra certs use this as an example. still use the appropriate certs
@@ -122,7 +120,7 @@ sh-4.2$ exit
 
 Give ```quay-enterprise-app``` a few seconds to boot up successfully. Once it does, you should be able to login as quay/password
 
-TODO: add Clair and test instructions
+*Note*: May still have issues accessing Clair from Quay 
 
 Create the Clair Database. You may need to change the database credentials if they were modified. Also, as with the quay database, you may need to modify for the appropriate storage type for the cloud provider. For testing, use the ephemeral option if you don't have a persistent storage on your cluster
 
@@ -137,23 +135,52 @@ oc create -f clair/postgres/persistent
 oc create -f clair/postgres/ephemeral
 ```
 
-The config.yaml in this repo should already have the appropriate clair settings. You will need to update your clair-config.yaml with the appropriate quay route
+You will need to update your clair-config.yaml with the appropriate quay route
 
 Create the clair config secret, service, and deployment
+
+You will need to create another certificate for clair using the common name: quay-enterprise-clair.quay-enterprise.svc. For testing use the dummy certs
 ```
+# using the same certs for quay here (tls.crt, tls.key). update if certs where generated
+#using security_scanner
 oc create secret generic clair-scanner-config-secret \
    --from-file=config.yaml=clair/clair-config.yaml \
    --from-file=security_scanner.pem=dummy-certs/security_scanner.pem \
-   --from-file=kid=dummy-certs/security_scanner.id
+   --from-file=kid=dummy-certs/security_scanner.id \
+   --from-file=tls.crt=dummy-certs/clair-ca/device.crt \
+   --from-file=tls.key=dummy-certs/clair-ca/device.key
+
+#using security_scanner-1
+#oc create secret generic clair-scanner-config-secret \
+   --from-file=config.yaml=clair/clair-config-1.yaml \
+   --from-file=security_scanner.pem=dummy-certs/security_scanner-1.pem \
+   --from-file=kid=dummy-certs/security_scanner-1.id \
+   --from-file=tls.crt=dummy-certs/clair-ca/device.crt \
+   --from-file=tls.key=dummy-certs/clair-ca/device.key
+
 oc create -f clair/clair-service.yaml
 oc create -f clair/clair-deployment.yaml
+
+
+# regenerate config file (this probably isn't necessary. could have just used this config earlier)
+oc delete secret quay-enterprise-config-secret
+oc create secret generic  quay-enterprise-config-secret --from-file="config.yaml=config-copied-clair.yaml" \
+                                    --from-file=ssl.key=dummy-certs/ca/device.key \
+                                    --from-file=ssl.cert=dummy-certs/ca/device.crt
+# if you generate extra certs use this as an example. still use the appropriate certs
+#oc create secret generic  quay-enterprise-config-secret --from-file="config.yaml=config-copied-clair.yaml" \
+                                    --from-file=ssl.key=dummy-certs/ssl.key \
+                                    --from-file=ssl.cert=dummy-certs/ssl.cert \
+                                    --from-file=extra_ca_certs_quay.crt=dummy-certs/extra_ca_certs_quay.crt
 ```
 
-restart quay
+Redeploy the quay pod so latest changes are applied
 ```
-oc delete pod -lquay-enterprise-component=app
+#oc delete pod -lquay-enterprise-component=app
 ```
-Wait till the quay app pod restarts, login and attempt to push a new image to a repo. If successful, the clair scan should get Queued and at some point the scan should happen
+Wait till the quay app pod restarts, login and attempt to push a new image to a repo. If successful, the security scan column should be set to Queued and at some point the scan should happen
+
+**NOTE**: currently receiving jwt-proxy cert errors
 
 # APPENDIX
 
