@@ -87,15 +87,16 @@ SERVER_HOSTNAME: quay-enterprise-quay-quay-enterprise.apps.gbengaocp43.redhatgov
 
 Also, supply your appropriate certs. For testing you can use dummy certs but best to follow instructions here to generate the certs:
 https://access.redhat.com/documentation/en-us/red_hat_quay/3.3/html-single/manage_red_hat_quay/index#using-ssl-to-protect-quay
+After the certs are generated, contatenate the rootCA to the certificate generated
 Finally this example uses localStorage, which isn't supported. In production env, update to use a supported storage backend for the registry
 ```
 # probably didn't need to create it the first time but leaving as-is
 oc delete secret quay-enterprise-config-secret
 # extra_ca_certs_quay.crt and ssl.cert should be same value
 oc create secret generic  quay-enterprise-config-secret --from-file="config.yaml=config-copied.yaml" \
-                                    --from-file=ssl.key=dummy-certs/ca/device.key \
-                                    --from-file=ssl.cert=dummy-certs/ca/device.crt \
-                                    --from-file=extra_ca_certs_quay.crt=dummy-certs/ca/device.crt
+                                    --from-file=ssl.key=dummy-certs/root-ca/quay.key \
+                                    --from-file=ssl.cert=dummy-certs/root-ca/quay.crt \
+                                    --from-file=extra_ca_certs_quay.crt=dummy-certs/root-ca/quay.crt
 ```
 
  
@@ -162,7 +163,9 @@ You will need to update your ```clair-config.yaml``` with the appropriate quay r
 
 Create the clair config secret, service, and deployment
 
-You will need to create another certificate for clair using the common name: quay-enterprise-clair.quay-enterprise.svc. For testing use the dummy certs
+You will need to create another certificate for clair using the common name: ```quay-enterprise-clair.quay-enterprise.svc```. https://access.redhat.com/documentation/en-us/red_hat_quay/3.3/html-single/manage_red_hat_quay/index#using-ssl-to-protect-quay
+You can use the same rootCA as before. After the certs are generated, contatenate the rootCA to the certificate generated.
+For testing use the dummy certs
 
 The ```security_scanner.pem``` file and key can be generated from the clair config tool. You can use the ones in this repo
 ```
@@ -174,16 +177,16 @@ oc create secret generic clair-scanner-config-secret \
    --from-file=config.yaml=clair/clair-config.yaml \
    --from-file=security_scanner.pem=dummy-certs/security_scanner.pem \
    --from-file=kid=dummy-certs/security_scanner.id \
-   --from-file=tls.crt=dummy-certs/clair-ca/device.crt \
-   --from-file=tls.key=dummy-certs/clair-ca/device.key
+   --from-file=tls.crt=dummy-certs/root-ca/clair.crt \
+   --from-file=tls.key=dummy-certs/root-ca/clair.key
 
 #using security_scanner-1
 #oc create secret generic clair-scanner-config-secret \
    --from-file=config.yaml=clair/clair-config-1.yaml \
    --from-file=security_scanner.pem=dummy-certs/security_scanner-1.pem \
    --from-file=kid=dummy-certs/security_scanner-1.id \
-   --from-file=tls.crt=dummy-certs/clair-ca/device.crt \
-   --from-file=tls.key=dummy-certs/clair-ca/device.key
+   --from-file=tls.crt=dummy-certs/root-ca/clair.crt \
+   --from-file=tls.key=dummy-certs/root-ca/clair.key
 
 # Create the Clair Service and Deployment
 oc create -f clair/clair-service.yaml
@@ -225,11 +228,12 @@ oc delete secret quay-enterprise-config-secret
 # extra_ca_certs_quay.crt and ssl.cert should be same value
 # extra_ca_certs_clair.crt should point to same cert as clair
 oc create secret generic  quay-enterprise-config-secret --from-file="config.yaml=config-copied-clair.yaml" \
-                                    --from-file=ssl.key=dummy-certs/ca/device.key \
-                                    --from-file=ssl.cert=dummy-certs/ca/device.crt \
-                                    --from-file=extra_ca_certs_quay.crt=dummy-certs/ca/device.crt \
-                                    --from-file=extra_ca_certs_clair.crt=dummy-certs/clair-ca/device.crt 
+                                    --from-file=ssl.key=dummy-certs/root-ca/quay.key \
+                                    --from-file=ssl.cert=dummy-certs/root-ca/quay.crt \
+                                    --from-file=extra_ca_certs_quay.crt=dummy-certs/root-ca/quay.crt \
+                                    --from-file=extra_ca_certs_clair.crt=dummy-certs/root-ca/clair.crt 
 ```
+
 
 Redeploy the quay pod so latest changes are applied
 ```
