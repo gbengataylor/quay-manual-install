@@ -86,7 +86,7 @@ SERVER_HOSTNAME: quay-enterprise-quay-quay-enterprise.apps.gbengaocp43.redhatgov
 ```
 
 Also, supply your appropriate certs. For testing you can use dummy certs but best to follow instructions here to generate the certs:
-https://access.redhat.com/documentation/en-us/red_hat_quay/3.3/html-single/manage_red_hat_quay/index#using-ssl-to-protect-quay
+https://access.redhat.com/documentation/en-us/red_hat_quay/3.3/html-single/manage_red_hat_quay/index#using-ssl-to-protect-quay. For the commands to create the certs, please see ```dummy_certs/create_certs.md```. 
 After the certs are generated, contatenate the rootCA to the certificate generated
 Finally this example uses localStorage, which isn't supported. In production env, update to use a supported storage backend for the registry
 ```
