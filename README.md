@@ -1,4 +1,6 @@
-**NOTE: this only works for 4.3 for now. The API for Deployments changed in 4.4 (k8s 1.17) so deployments will fail **
+This repo has instructions on how to manually install Quay on OpenShift without the use of the Operator and also without the Quay Setup Tool
+
+**NOTE: this only works for 4.3 and below for now as it uses the old API Spec for Deployments. That api was completely deprecated and removed in 4.4 (k8s 1.17) so deployments will fail if using the Deployment resources in this repo. Need to update the Deployment Resources with New API spec **
 
 Create Quay Project.
 ```
@@ -25,7 +27,7 @@ oc create -f postgres/
 oc create -f quay-storageclass.yaml
 oc create -f postgres/persistent
 
-#run this if testing with ephermal storage
+#run this if testing the database with ephermal storage
 oc create -f postgres/ephemeral
 ```
 
@@ -69,43 +71,55 @@ oc create -f quay-enterprise-app-route.yaml
 #oc create -f config-tool/
 ```
 
-instead use the config-copied-clair.yaml in the repo. modify accordingly. may need to update route and storage option.
+instead use the ```config-copied.yaml``` in the repo. modify accordingly. You need to update route and storage option (if not using LocalStorage).
+```
+# you may also need to change the storage config
+DISTRIBUTED_STORAGE_CONFIG:
+  default:
+  - LocalStorage
+  - storage_path: /datastorage/registry
+DISTRIBUTED_STORAGE_DEFAULT_LOCATIONS: []
+DISTRIBUTED_STORAGE_PREFERENCE:
+- default
+...
+...
+# replace this with quay route
+SERVER_HOSTNAME: quay-enterprise-quay-quay-enterprise.apps.gbengaocp43.redhatgov.io
+```
+
 Also, supply your appropriate certs. For testing you can use dummy certs but best to follow instructions here to generate the certs:
 https://access.redhat.com/documentation/en-us/red_hat_quay/3.3/html-single/manage_red_hat_quay/index#using-ssl-to-protect-quay
 Finally this example uses localStorage, which isn't supported. In production env, update to use a supported storage backend for the registry
 ```
 # probably didn't need to create it the first time but leaving as-is
 oc delete secret quay-enterprise-config-secret
+# extra_ca_certs_quay.crt and ssl.cert should be same value
 oc create secret generic  quay-enterprise-config-secret --from-file="config.yaml=config-copied.yaml" \
                                     --from-file=ssl.key=dummy-certs/ca/device.key \
-                                    --from-file=ssl.cert=dummy-certs/ca/device.crt
-# if you generate extra certs use this as an example. still use the appropriate certs
-#oc create secret generic  quay-enterprise-config-secret --from-file="config.yaml=config-copied-clair.yaml" \
-                                    --from-file=ssl.key=dummy-certs/ssl.key \
-                                    --from-file=ssl.cert=dummy-certs/ssl.cert \
-                                    --from-file=extra_ca_certs_quay.crt=dummy-certs/extra_ca_certs_quay.crt
+                                    --from-file=ssl.cert=dummy-certs/ca/device.crt \
+                                    --from-file=extra_ca_certs_quay.crt=dummy-certs/ca/device.crt
 ```
 
-
+ 
 
 Start Quay
  ```
 oc create -f quay-enterprise-app-rc.yaml
 ```
 
-Quay will start crashing becuase we need to insert superuser. Need to do this AFTER initially Quay deploys since it creates the Schema for the Quay app in postgres
+Quay will start crashing becuase we need to insert superuser. Need to do this AFTER the first time Quay deploys as it creates the Schema for the Quay app in the database
 ```
 postgres_pod=$(oc get pods -n quay-enterprise  -lapp=quay-enterprise-quay-postgresql | grep quay-enterprise-quay-postgresql | awk '{ print $1}')
-#note: currently uses hash for password..for demo, hardcoding for now
+# note: currently uses hash for password..for demo, hardcoding for now
 INSERT_SQL='INSERT INTO "user" ("uuid", "username", "email", "verified", "organization", "robot", "invoice_email", "invalid_login_attempts", "last_invalid_login", "removed_tag_expiration_s", "enabled" , "creation_date", "password_hash") VALUES ('c2e14e33-a155-4d38-9cc5-d44b00cbe360', 'quay', 'changeme@example.com', true, false, false, false, 0, current_timestamp, 1209600, true,current_timestamp, '$2a$12$u0HMSBz3slLA8jyf4Gi/6.GDbZAM2u8OZDfC6i/oCujqFHVS/CP3W');'
 
 oc exec -it $postgres_pod -n quay-enterprise  -- /bin/bash -c 'echo $INSERT_SQL | psql -d quay'
 
-#verify it worked 
+# verify it worked 
 SELECT_SQL='select id, uuid, username, email, verified, organization, robot, invoice_email, invalid_login_attempts, last_invalid_login, removed_tag_expiration_s, enabled from "user";'
 oc exec -it $postgres_pod -n quay-enterprise  -- /bin/bash -c 'echo $SELECT_SQL | psql -d quay'
 
-#you might need to log into pod and execute and view command
+# you might need to log into pod and execute and view command
 oc rsh $postgres_pod
 
 # if you changed your database name and/or user, change appropriately
@@ -120,7 +134,6 @@ sh-4.2$ exit
 
 Give ```quay-enterprise-app``` a few seconds to boot up successfully. Once it does, you should be able to login as quay/password
 
-*Note*: May still have issues accessing Clair from Quay 
 
 Create the Clair Database. You may need to change the database credentials if they were modified. Also, as with the quay database, you may need to modify for the appropriate storage type for the cloud provider. For testing, use the ephemeral option if you don't have a persistent storage on your cluster
 
@@ -135,13 +148,29 @@ oc create -f clair/postgres/persistent
 oc create -f clair/postgres/ephemeral
 ```
 
-You will need to update your clair-config.yaml with the appropriate quay route
+You will need to update your ```clair-config.yaml``` with the appropriate quay route
+```
+    http:
+      # modify with quay app endpoint
+      endpoint: HTTPS://quay-enterprise-quay-quay-enterprise.apps.gbengaocp43.redhatgov.io/secscan/notify
+   ...
+
+     key_server:
+        type: keyregistry
+        options:
+          # modify with quay app endpoint
+          registry: https://quay-enterprise-quay-quay-enterprise.apps.gbengaocp43.redhatgov.io/keys/
+```
 
 Create the clair config secret, service, and deployment
 
 You will need to create another certificate for clair using the common name: quay-enterprise-clair.quay-enterprise.svc. For testing use the dummy certs
+
+The ```security_scanner.pem``` file and key can be generated from the clair config tool. You can use the ones in this repo
 ```
 # using the same certs for quay here (tls.crt, tls.key). update if certs where generated
+# There are two security_scanner files in this repo. Execute only one of the commands
+
 #using security_scanner
 oc create secret generic clair-scanner-config-secret \
    --from-file=config.yaml=clair/clair-config.yaml \
@@ -158,29 +187,64 @@ oc create secret generic clair-scanner-config-secret \
    --from-file=tls.crt=dummy-certs/clair-ca/device.crt \
    --from-file=tls.key=dummy-certs/clair-ca/device.key
 
+# Create the Clair Service and Deployment
 oc create -f clair/clair-service.yaml
 oc create -f clair/clair-deployment.yaml
+```
 
+Verify clair is running in the logs
+```
+time="2020-05-20T14:49:22Z" level=info msg="Starting reverse proxy (Listening on ':6060')" 
+time="2020-05-20T14:49:22Z" level=info msg="Starting forward proxy (Listening on ':6063')"
+...
+...
+...
+{"Event":"Start fetching vulnerabilities","Level":"info","Location":"rhel.go:92","Time":"2020-05-20 14:49:22.880502","package":"RHEL"}
+```
 
-# regenerate config file (this probably isn't necessary. could have just used this config earlier)
+Update ```config-copied-clair.yaml``` as needed. 
+
+```
+# you may also need to change the storage config
+DISTRIBUTED_STORAGE_CONFIG:
+  default:
+  - LocalStorage
+  - storage_path: /datastorage/registry
+DISTRIBUTED_STORAGE_DEFAULT_LOCATIONS: []
+DISTRIBUTED_STORAGE_PREFERENCE:
+- default
+...
+...
+...
+# replace this with quay route
+SERVER_HOSTNAME: quay-enterprise-quay-quay-enterprise.apps.gbengaocp43.redhatgov.io
+```
+
+Regenerate config secret with new config file with clair and add the clair certs to the secret. Quay needs this cert to be able to invoke the clair scan
+(Also could have started with ```config-copied-clair.yaml``` to avoid updates)
+```
 oc delete secret quay-enterprise-config-secret
+# extra_ca_certs_quay.crt and ssl.cert should be same value
+# extra_ca_certs_clair.crt should point to same cert as clair
 oc create secret generic  quay-enterprise-config-secret --from-file="config.yaml=config-copied-clair.yaml" \
                                     --from-file=ssl.key=dummy-certs/ca/device.key \
-                                    --from-file=ssl.cert=dummy-certs/ca/device.crt
-# if you generate extra certs use this as an example. still use the appropriate certs
-#oc create secret generic  quay-enterprise-config-secret --from-file="config.yaml=config-copied-clair.yaml" \
-                                    --from-file=ssl.key=dummy-certs/ssl.key \
-                                    --from-file=ssl.cert=dummy-certs/ssl.cert \
-                                    --from-file=extra_ca_certs_quay.crt=dummy-certs/extra_ca_certs_quay.crt
+                                    --from-file=ssl.cert=dummy-certs/ca/device.crt \
+                                    --from-file=extra_ca_certs_quay.crt=dummy-certs/ca/device.crt \
+                                    --from-file=extra_ca_certs_clair.crt=dummy-certs/clair-ca/device.crt 
 ```
 
 Redeploy the quay pod so latest changes are applied
 ```
 #oc delete pod -lquay-enterprise-component=app
 ```
-Wait till the quay app pod restarts, login and attempt to push a new image to a repo. If successful, the security scan column should be set to Queued and at some point the scan should happen
+Wait till few minutes after the Quay pod restarts, login and attempt to push a new image to a repo. If successful, the security scan column should be set to Queued and at some point the scan should happen. If you check the Quay logs, there should be no ```secsan``` errors and the Clair pod log should look like
 
-**NOTE**: currently receiving jwt-proxy cert errors
+```
+{"Event":"Handled HTTP request","Level":"info","Location":"router.go:57","Time":"2020-05-20 14:15:01.599182","elapsed time":20569796,"method":"POST","remote addr":"[::1]:55154","request uri":"/v1/layers","status":"422"}
+{"Event":"Handled HTTP request","Level":"info","Location":"router.go:57","Time":"2020-05-20 14:15:05.870369","elapsed time":4240433278,"method":"POST","remote addr":"[::1]:55160","request uri":"/v1/layers","status":"201"}
+....
+```
+
 
 # APPENDIX
 

@@ -49,6 +49,8 @@ REGISTRY_TITLE_SHORT: Red Hat Quay
 REPO_MIRROR_SERVER_HOSTNAME: null
 REPO_MIRROR_TLS_VERIFY: true
 SECRET_KEY: '38793862932964245640247738226275546742204070880887972094388000004037772499041'
+# IF NON-TLS protocol should be http
+#SECURITY_SCANNER_ENDPOINT: http://quay-enterprise-clair.quay-enterprise.svc:6060
 SECURITY_SCANNER_ENDPOINT: https://quay-enterprise-clair.quay-enterprise.svc:6060
 SECURITY_SCANNER_ISSUER_NAME: security_scanner
 # replace this with quay route

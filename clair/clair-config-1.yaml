@@ -8,7 +8,7 @@ clair:
   updater:
     interval: 6h0m0s
   notifier:
-    attempts: 1
+    attempts: 3
     renotifyinterval: 1h0m0s
     http:
       # modify with quay app endpoint
@@ -23,6 +23,7 @@ jwtproxy:
   signer_proxy:
     enabled: true
     listen_addr: :6063
+    # IF NON_TLS, comment out the following two lines    
     ca_key_file: /certificates/mitm.key
     ca_crt_file: /certificates/mitm.crt
     signer:
@@ -40,11 +41,14 @@ jwtproxy:
   verifier_proxies:
   - enabled: true
     listen_addr: :6060
+    # IF NON_TLS, comment out the following two lines    
     crt_file: /clair/config/clair.crt
     key_file: /clair/config/clair.key
     verifier:
       upstream: http://localhost:6062
+      # IF NON_TLS protocol should be http
       audience: https://quay-enterprise-clair.quay-enterprise.svc:6060
+      #audience: http://quay-enterprise-clair.quay-enterprise.svc:6060
       key_server:
         type: keyregistry
         options:
