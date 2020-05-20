@@ -31,9 +31,7 @@ oc create -f postgres/persistent
 oc create -f postgres/ephemeral
 ```
 
-#execute this on your postgress
-
-#change your postgress pod name AFTER the posgresql pod is running
+Execute this command on your postgres Pod after it is up and running
 ```
 postgres_pod=$(oc get pods -n quay-enterprise  -lapp=quay-enterprise-quay-postgresql | grep quay-enterprise-quay-postgresql | awk '{ print $1}')
 oc exec -it $postgres_pod  -n quay-enterprise -- /bin/bash -c 'echo "CREATE EXTENSION IF NOT EXISTS pg_trgm" | /opt/rh/rh-postgresql10/root/usr/bin/psql -d quay'
