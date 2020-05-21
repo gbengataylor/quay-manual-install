@@ -12,6 +12,9 @@ openssl req -new -key quay.key -out quay.csr
 openssl x509 -req -in quay.csr -CA rootCA.pem \
        -CAkey rootCA.key -CAcreateserial -out quay.crt -days 500 -sha256
 
+#concat rootCA to Quay Cert
+cat rootCA.pem >> quay.crt
+
 # Generate Clair Certs
 openssl genrsa -out clair.key 2048
 # For CommonName, use quay-enterprise-clair.quay-enterprise.svc
@@ -19,4 +22,7 @@ openssl req -new -key clair.key -out clair.csr
 # Sign the certificatie with the rootCA
 openssl x509 -req -in clair.csr -CA rootCA.pem \
        -CAkey rootCA.key -CAcreateserial -out clair.crt -days 500 -sha256
+
+#concat rootCA to Clair Cert
+cat rootCA.pem >> clair.crt
 ```
