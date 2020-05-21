@@ -86,8 +86,8 @@ SERVER_HOSTNAME: quay-enterprise-quay-quay-enterprise.apps.gbengaocp43.redhatgov
 ```
 
 Also, supply your appropriate certs. For testing you can use dummy certs but best to follow instructions here to generate the certs:
-https://access.redhat.com/documentation/en-us/red_hat_quay/3.3/html-single/manage_red_hat_quay/index#using-ssl-to-protect-quay. For the commands to create the certs, please see ```dummy_certs/create_certs.md```. 
-After the certs are generated, contatenate the rootCA to the certificate generated
+https://access.redhat.com/documentation/en-us/red_hat_quay/3.3/html-single/manage_red_hat_quay/index#using-ssl-to-protect-quay. For the commands to create self-signed certs, please see ```dummy_certs/create_certs.md```. 
+After the certs are generated, contatenate the rootCA to the certificate generated.
 Finally this example uses localStorage, which isn't supported. In production env, update to use a supported storage backend for the registry
 ```
 # probably didn't need to create it the first time but leaving as-is
@@ -164,7 +164,7 @@ You will need to update your ```clair-config.yaml``` with the appropriate quay r
 Create the clair config secret, service, and deployment
 
 You will need to create another certificate for clair using the common name: ```quay-enterprise-clair.quay-enterprise.svc```. https://access.redhat.com/documentation/en-us/red_hat_quay/3.3/html-single/manage_red_hat_quay/index#using-ssl-to-protect-quay
-You can use the same rootCA as before. After the certs are generated, contatenate the rootCA to the certificate generated.
+You can use the same rootCA as before. If you executed ALL the commands in ```dummy-certs\create_certs.cmd```, the clair cert should be generated. After the certs are generated, contatenate the rootCA to the certificate generated.
 For testing use the dummy certs
 
 The ```security_scanner.pem``` file and key can be generated from the clair config tool. You can use the ones in this repo
