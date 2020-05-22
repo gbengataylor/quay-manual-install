@@ -1,7 +1,5 @@
 This repo has instructions on how to manually install Quay on OpenShift without the use of the Operator and also without the Quay Setup Tool
 
-**NOTE: this only works for 4.3 and below for now as it uses the old API Spec for Deployments. That api was completely deprecated and removed in 4.4 (k8s 1.17) so deployments will fail if using the Deployment resources in this repo. Need to update the Deployment Resources with New API spec **
-
 Create Quay Project.
 ```
 oc new-project quay-enterprise
@@ -98,7 +96,6 @@ oc create secret generic  quay-enterprise-config-secret --from-file="config.yaml
                                     --from-file=ssl.cert=dummy-certs/root-ca/quay.crt \
                                     --from-file=extra_ca_certs_quay.crt=dummy-certs/root-ca/quay.crt
 ```
-
  
 
 Start Quay
@@ -233,7 +230,6 @@ oc create secret generic  quay-enterprise-config-secret --from-file="config.yaml
                                     --from-file=extra_ca_certs_quay.crt=dummy-certs/root-ca/quay.crt \
                                     --from-file=extra_ca_certs_clair.crt=dummy-certs/root-ca/clair.crt 
 ```
-
 
 Redeploy the quay pod so latest changes are applied
 ```
